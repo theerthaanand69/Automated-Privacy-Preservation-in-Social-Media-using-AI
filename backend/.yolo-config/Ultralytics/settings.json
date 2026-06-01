@@ -1,0 +1,21 @@
+{
+  "settings_version": "0.0.6",
+  "datasets_dir": "C:\\Users\\DEEP KIRAN D\\OneDrive\\Desktop\\datasets",
+  "weights_dir": "C:\\Users\\DEEP KIRAN D\\OneDrive\\Desktop\\flask\\weights",
+  "runs_dir": "C:\\Users\\DEEP KIRAN D\\OneDrive\\Desktop\\flask\\runs",
+  "uuid": "7e2a960b534a13e73e5fecc81169d05add2ae60552e2b6439e937885640284e8",
+  "sync": true,
+  "api_key": "",
+  "openai_api_key": "",
+  "clearml": true,
+  "comet": true,
+  "dvc": true,
+  "hub": true,
+  "mlflow": true,
+  "neptune": true,
+  "raytune": true,
+  "tensorboard": false,
+  "wandb": false,
+  "vscode_msg": true,
+  "openvino_msg": true
+}

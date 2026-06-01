@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Instagram Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* -------------------------------
+           Theme + layout variables
+        -------------------------------- */
+        :root {
+            --bg: #f1f5f7;
+            --surface: rgba(255, 255, 255, 0.86);
+            --surface-strong: #ffffff;
+            --text: #0f141a;
+            --muted: #586571;
+            --line: rgba(15, 20, 26, 0.12);
+            --accent: #ff6b4a;
+            --accent-soft: rgba(255, 107, 74, 0.18);
+            --danger: #e3513b;
+            --success: #19b27b;
+            --shadow: 0 30px 80px rgba(15, 23, 42, 0.14);
+            --glow-a: rgba(62, 198, 223, 0.28);
+            --glow-b: rgba(255, 121, 84, 0.2);
+            --glow-c: rgba(94, 219, 163, 0.2);
+        }
+
+        /* Global reset */
+        * {
+            box-sizing: border-box;
+        }
+
+        /* Page background + typography */
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at 12% 12%, var(--glow-a), transparent 36%),
+                radial-gradient(circle at 88% 8%, var(--glow-b), transparent 34%),
+                radial-gradient(circle at 78% 78%, var(--glow-c), transparent 38%),
+                linear-gradient(180deg, #f7fbfb 0%, var(--bg) 100%);
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            font-family: "Space Grotesk", sans-serif;
+            color: var(--text);
+        }
+
+        body::before,
+        body::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.65;
+        }
+
+        body::before {
+            background:
+                radial-gradient(circle at 18% 25%, rgba(62, 198, 223, 0.2), transparent 40%),
+                radial-gradient(circle at 85% 30%, rgba(255, 121, 84, 0.16), transparent 38%);
+            animation: drift 18s ease-in-out infinite;
+        }
+
+        body::after {
+            background:
+                radial-gradient(circle at 26% 82%, rgba(94, 219, 163, 0.2), transparent 42%),
+                radial-gradient(circle at 90% 70%, rgba(255, 200, 120, 0.14), transparent 45%);
+            animation: drift 22s ease-in-out infinite reverse;
+        }
+
+        /* Two-column layout container */
+        .shell {
+            width: min(1080px, 100%);
+            display: grid;
+            grid-template-columns: 1.08fr 0.92fr;
+            gap: 22px;
+            align-items: stretch;
+        }
+
+        /* Glass panels */
+        .intro,
+        .login-box,
+        .footer-box {
+            backdrop-filter: blur(18px);
+            background: var(--surface);
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow);
+            animation: floatIn 0.6s ease both;
+        }
+
+        /* Left hero panel */
+        .intro {
+            border-radius: 34px;
+            padding: 42px;
+            position: relative;
+            overflow: hidden;
+            min-height: 620px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* Decorative glow blobs */
+        .intro::before,
+        .intro::after {
+            content: "";
+            position: absolute;
+            border-radius: 999px;
+            background: var(--accent-soft);
+            filter: blur(4px);
+        }
+
+        .intro::before {
+            width: 220px;
+            height: 220px;
+            top: -90px;
+            right: -60px;
+        }
+
+        .intro::after {
+            width: 180px;
+            height: 180px;
+            left: -60px;
+            bottom: -40px;
+        }
+
+        /* Content containers above glow */
+        .intro-copy,
+        .intro-stats,
+        .login-wrapper {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Small pill label */
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.54);
+            border: 1px solid var(--line);
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        /* Hero title */
+        h1 {
+            margin: 18px 0 14px;
+            font-family: "Instrument Serif", serif;
+            font-size: clamp(3rem, 6vw, 4.8rem);
+            line-height: 0.92;
+            font-weight: 400;
+            letter-spacing: -0.04em;
+        }
+
+        /* Hero description */
+        .intro p {
+            margin: 0;
+            max-width: 460px;
+            font-size: 16px;
+            line-height: 1.7;
+            color: var(--muted);
+        }
+
+        /* Stats grid */
+        .intro-stats {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        /* Stat tile */
+        .stat {
+            padding: 18px;
+            border-radius: 22px;
+            background: rgba(255, 255, 255, 0.54);
+            border: 1px solid var(--line);
+        }
+
+        .stat strong {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 26px;
+            font-weight: 700;
+        }
+
+        .stat span {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        /* Right column */
+        .login-wrapper {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* Login card */
+        .login-box {
+            border-radius: 34px;
+            padding: 34px;
+            text-align: center;
+            margin-bottom: 14px;
+            animation-delay: 0.08s;
+        }
+
+        /* Brand image */
+        .logo {
+            margin-bottom: 18px;
+        }
+
+        .logo img {
+            width: 176px;
+        }
+
+        /* Helper copy */
+        .subcopy {
+            margin: 0 0 24px;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* Form fields */
+        .login-box input {
+            width: 100%;
+            padding: 15px 16px;
+            margin-bottom: 10px;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: var(--surface-strong);
+            font-size: 15px;
+            font-family: inherit;
+            color: var(--text);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+        }
+
+        .login-box input:focus {
+            outline: none;
+            border-color: rgba(184, 77, 53, 0.42);
+            box-shadow: 0 0 0 4px rgba(184, 77, 53, 0.08);
+            transform: translateY(-1px);
+        }
+
+        /* Button stack */
+        .actions {
+            display: grid;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        /* Primary buttons */
+        .login-box button {
+            width: 100%;
+            padding: 13px 16px;
+            color: #fff;
+            border: none;
+            border-radius: 18px;
+            font-size: 14px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: transform 0.2s ease, filter 0.2s ease;
+        }
+
+        .login-box button:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.04);
+        }
+
+        /* Primary CTA */
+        .primary-btn {
+            background: linear-gradient(135deg, #ff7a57 0%, var(--accent) 100%);
+        }
+
+        /* Secondary CTA */
+        .secondary-btn {
+            background: linear-gradient(135deg, #6ab7ff 0%, #4aa1ee 100%);
+        }
+
+        /* Error/success message area */
+        #error {
+            min-height: 22px;
+            color: var(--danger);
+            font-size: 14px;
+            margin-top: 14px;
+        }
+
+        /* Footer note */
+        .footer-box {
+            border-radius: 24px;
+            padding: 18px 20px;
+            text-align: left;
+            font-size: 14px;
+            line-height: 1.7;
+            color: var(--muted);
+            animation-delay: 0.12s;
+        }
+
+        .footer-box strong {
+            color: var(--text);
+        }
+
+        /* Default credentials hint */
+        .credential-row {
+            margin-top: 10px;
+            padding: 12px 14px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.58);
+            border: 1px dashed var(--line);
+            font-size: 13px;
+        }
+
+        /* Responsive: tablet */
+        @media (max-width: 920px) {
+            .shell {
+                grid-template-columns: 1fr;
+            }
+
+            .intro {
+                min-height: auto;
+                padding: 30px;
+            }
+        }
+
+        /* Responsive: mobile */
+        @media (max-width: 560px) {
+            body {
+                padding: 14px;
+            }
+
+            .intro,
+            .login-box {
+                border-radius: 26px;
+                padding: 24px;
+            }
+
+            .intro-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @keyframes drift {
+            0% { transform: translate3d(0, 0, 0); }
+            50% { transform: translate3d(10px, -12px, 0); }
+            100% { transform: translate3d(0, 0, 0); }
+        }
+
+        @keyframes floatIn {
+            from { opacity: 0; transform: translateY(14px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            body::before,
+            body::after,
+            .intro,
+            .login-box,
+            .footer-box {
+                animation: none;
+            }
+        }
+    </style>
+</head>
+<body>
+<!-- ===============================
+     Login Page Layout
+     Left: product intro
+     Right: login/register form
+=============================== -->
+<div class="shell">
+    <!-- Hero / intro panel -->
+    <section class="intro">
+        <div class="intro-copy">
+            <div class="eyebrow">Photo sharing, moderation, stego scan</div>
+            <h1>Sign in to your social lab.</h1>
+            <p>This UI now feels closer to an actual product instead of a plain demo page. Use the seeded values below or register a new user and move straight into the feed.</p>
+        </div>
+        <div class="intro-stats">
+            <div class="stat">
+                <strong>Multi</strong>
+                <span>account login and signup flow</span>
+            </div>
+            <div class="stat">
+                <strong>FastAPI</strong>
+                <span>backend on `127.0.0.1:8000`</span>
+            </div>
+            <div class="stat">
+                <strong>Live</strong>
+                <span>feed, search, messages and profile tools</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Login + signup panel -->
+    <div class="login-wrapper">
+        <div class="login-box">
+            <div class="logo">
+                <img src="https://i.postimg.cc/qMFTcDw1/instagram-text.png" alt="Instagram">
+            </div>
+            <p class="subcopy">Enter your credentials to log in, or create the account once if it does not exist yet.</p>
+
+            <!-- Credentials -->
+            <input type="text" id="username" placeholder="Phone number, username, or email" value="user">
+            <input type="password" id="password" placeholder="Password" value="1234">
+
+            <!-- Actions -->
+            <div class="actions">
+                <button class="primary-btn" onclick="login()">Log In</button>
+                <button class="secondary-btn" onclick="registerUser()">Create Account</button>
+            </div>
+            <p id="error"></p>
+        </div>
+
+        <!-- Footer help -->
+        <div class="footer-box">
+            Default form values are <strong>user</strong> and <strong>1234</strong>.
+            <div class="credential-row">If login fails, click <strong>Create Account</strong> once, then log in with the same username and password.</div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ---------------------------------
+// API config + UI helpers
+// ---------------------------------
+const API_BASE = "http://127.0.0.1:8000";
+
+// Set status message (red for error, green for success)
+function setMessage(message, ok = false) {
+    const el = document.getElementById("error");
+    el.style.color = ok ? "#2d8a5e" : "#c24432";
+    el.innerText = message || "";
+}
+
+// Read username + password from inputs
+function getCredentials() {
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value;
+    return { username, password };
+}
+
+// Login flow
+function login() {
+    const { username, password } = getCredentials();
+    if (!username || !password) {
+        setMessage("Enter username and password.");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("username", username);
+    formData.append("password", password);
+
+    // POST to backend login endpoint
+    fetch(`${API_BASE}/auth/login`, { method: "POST", body: formData })
+        .then(async (res) => {
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || "Login failed.");
+            }
+            return res.json();
+        })
+        // On success, store session and go to feed
+        .then((data) => {
+            localStorage.setItem("loggedIn", "true");
+            localStorage.setItem("username", data.username);
+            window.location.href = "feed.html";
+        })
+        .catch((err) => setMessage(err.message));
+}
+
+// Signup flow
+function registerUser() {
+    const { username, password } = getCredentials();
+    if (!username || !password) {
+        setMessage("Enter username and password.");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("username", username);
+    formData.append("password", password);
+
+    // POST to backend register endpoint
+    fetch(`${API_BASE}/auth/register`, { method: "POST", body: formData })
+        .then(async (res) => {
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || "Signup failed.");
+            }
+            return res.json();
+        })
+        .then(() => setMessage("Account created. You can now log in.", true))
+        .catch((err) => setMessage(err.message));
+}
+</script>
+
+<script>
+// ---------------------------------
+// Basic client-side "anti-screenshot"
+// ---------------------------------
+document.addEventListener("contextmenu", (e) => e.preventDefault());
+document.addEventListener("keydown", function(e) {
+    if (e.key === "F12") e.preventDefault();
+    if (e.ctrlKey && e.shiftKey && e.key === "I") e.preventDefault();
+    if (e.key === "PrintScreen") alert("Screenshot is disabled!");
+    if (e.ctrlKey && e.key.toLowerCase() === "u") e.preventDefault();
+});
+</script>
+</body>
+</html>

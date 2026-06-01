@@ -1,0 +1,36 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual environments
+venv/
+.venv/
+.venv311/
+backend/.venv311/
+backend/venv/
+
+# Environment variables
+.env
+.env.*
+
+# Node
+node_modules/
+
+# Dataset / local files
+backend/dataset/images/
+backend/_tmp_*
+*.db
+
+# Python tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

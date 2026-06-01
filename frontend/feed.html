@@ -1,0 +1,1718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+// ---------------------------------
+// Session guard + logout
+// ---------------------------------
+if (!localStorage.getItem("loggedIn")) {
+    window.location.href = "index.html";
+}
+
+function logout() {
+    localStorage.removeItem("loggedIn");
+    localStorage.removeItem("username");
+    window.location.href = "index.html";
+}
+    </script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram clone</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .screen-guard { transition: filter 0.2s ease; }
+        .page-hero { margin: 0 10px 18px; padding: 24px; border: 1px solid var(--line-color, rgba(0,0,0,.08)); border-radius: 28px; background: linear-gradient(135deg, var(--surface-strong, #fff), rgba(62, 198, 223, 0.14)); box-shadow: var(--shadow-soft, 0 10px 30px rgba(15,23,42,.06)); display: grid; gap: 18px; }
+        .hero-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+        .hero-kicker { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--line-color, rgba(0,0,0,.08)); border-radius: 999px; background: var(--surface-strong, rgba(255,255,255,.7)); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--secod-font-color, #666); }
+        .hero-title { margin: 12px 0 8px; font-family: "Instrument Serif", serif; font-size: clamp(2rem, 4vw, 3.4rem); line-height: .96; letter-spacing: -.04em; }
+        .hero-copy { max-width: 640px; line-height: 1.7; color: var(--secod-font-color, #666); }
+        .hero-actions, .hero-stats { display: flex; flex-wrap: wrap; gap: 12px; }
+        .hero-action { display: inline-flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 16px; border: 1px solid var(--line-color, rgba(0,0,0,.12)); background: var(--surface-strong, #fff); color: var(--font-color, #111); font-weight: 700; }
+        .hero-action.primary { background: var(--accent-color, #b84d35); color: #fff; border-color: transparent; }
+        .hero-stat { min-width: 140px; padding: 14px 16px; border-radius: 18px; border: 1px solid var(--line-color, rgba(0,0,0,.08)); background: rgba(255,255,255,.72); }
+        .hero-stat strong { display: block; margin-bottom: 4px; font-size: 1.1rem; color: var(--font-color, #111); }
+        .hero-stat span { color: var(--secod-font-color, #666); font-size: .84rem; line-height: 1.5; }
+        .feature-card { margin-top: 16px; padding: 18px; border: 1px solid var(--line-color, rgba(0,0,0,.08)); border-radius: 24px; background: var(--surface-color, #fff); box-shadow: var(--shadow-soft, 0 10px 30px rgba(15,23,42,.06)); backdrop-filter: blur(18px); }
+        .feature-card h3, .feature-card p { margin: 0; }
+        .feature-card h3, .post-liked, .title span, .panel-item strong { color: var(--font-color, #111); }
+        .feature-card p, .feature-card label, .commentStatus, .savedMeta, .riskText, .panel-empty, .panel-item small { color: var(--secod-font-color, #666); }
+        .feature-head, .feature-actions, .mini-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .feature-stack, .panel-list, .composer-fields, .profile-tool-grid { display: grid; gap: 10px; }
+        .feature-input, .feature-textarea, .feature-select, .commentInput { width: 100%; padding: 12px 14px; border: 1px solid var(--line-color, rgba(0,0,0,.12)); border-radius: 14px; background: var(--surface-strong, #fff); color: var(--font-color, #111); outline: none; font: inherit; }
+        .feature-input:focus, .feature-textarea:focus, .feature-select:focus, .commentInput:focus { border-color: var(--accent-color, #ff6b4a); box-shadow: 0 0 0 4px var(--accent-soft, rgba(255, 107, 74, 0.18)); }
+        .feature-textarea { min-height: 80px; resize: vertical; }
+        .feature-btn, .commentBtn, .deletePostBtn { border: none; border-radius: 14px; padding: 11px 15px; cursor: pointer; font-weight: 700; font-family: inherit; }
+        .feature-btn.primary, .commentBtn { background: var(--accent-color, #b84d35); color: #fff; }
+        .feature-btn.secondary { background: transparent; border: 1px solid var(--line-color, rgba(0,0,0,.12)); color: var(--font-color, #111); }
+        .feature-btn.active { background: var(--accent-color, #b84d35); color: #fff; }
+        .feature-btn:disabled { opacity: .6; cursor: wait; }
+        .panel-list { margin-top: 12px; max-height: 180px; overflow: auto; padding-right: 4px; }
+        .panel-item { padding: 12px 0; border-bottom: 1px solid var(--line-color, rgba(0,0,0,.08)); display: grid; gap: 4px; }
+        .panel-item:last-child { border-bottom: none; }
+        .messageThread { cursor: pointer; }
+        .messageThread:hover { background: var(--background-on-hover, rgba(0,0,0,0.04)); }
+        .status-note { min-height: 20px; font-size: .84rem; color: var(--secod-font-color, #666); }
+        .status-note.error { color: #c24432; }
+        .status-note.success { color: var(--success-color, #1e8b63); }
+        .feed-controls { margin-bottom: 18px; }
+        .feed-status { margin-top: 8px; font-size: .85rem; }
+        .post-main { position: relative; }
+        .post-action-btn, .deletePostBtn { background: transparent; cursor: pointer; }
+        .post-action-btn { color: var(--accent-color, #b84d35); font-weight: 700; }
+        .deletePostBtn { color: #ed4956; padding: 0; }
+        .post-main-image { position: relative; overflow: hidden; }
+        .post-main-image img { display: block; width: 100%; max-height: 700px; object-fit: cover; user-select: none; -webkit-user-drag: none; }
+        .watermark { position: absolute; right: 14px; bottom: 14px; padding: 7px 10px; border-radius: 999px; background: rgba(15, 20, 26, 0.6); color: #fff; font-size: 12px; font-weight: 700; letter-spacing: 0.03em; pointer-events: none; }
+        .modal-alert {
+            margin-top: 10px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 107, 74, 0.32);
+            background: rgba(255, 107, 74, 0.12);
+            color: var(--font-color, #111);
+            display: none;
+        }
+        .modal-alert.visible { display: block; }
+        .modal-alert__row { display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; }
+        .modal-alert__text { font-size: 14px; line-height: 1.5; }
+        .modal-alert__close {
+            border: none;
+            background: transparent;
+            color: inherit;
+            font-size: 18px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0;
+        }
+        .upload-error-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 20, 26, 0.55);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 4000;
+            padding: 18px;
+        }
+        .upload-error-card {
+            width: min(460px, 100%);
+            background: var(--surface-strong, #fff);
+            color: var(--font-color, #111);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 107, 74, 0.3);
+            box-shadow: var(--shadow-strong, 0 16px 40px rgba(0,0,0,0.2));
+            padding: 18px;
+        }
+        .upload-error-card h4 {
+            margin: 0 0 8px;
+            font-size: 1rem;
+        }
+        .upload-error-card p {
+            margin: 0 0 14px;
+            color: var(--secod-font-color, #666);
+            line-height: 1.6;
+        }
+        .upload-error-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .media-privacy-note {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin: 12px 0 0;
+            padding: 11px 14px;
+            border-radius: 14px;
+            background: var(--accent-soft, rgba(255, 107, 74, 0.18));
+            border: 1px solid rgba(255, 107, 74, 0.22);
+            color: var(--secod-font-color, #666);
+            font-size: 13px;
+        }
+        .media-privacy-note strong { color: var(--font-color, #111); }
+        .privacy-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 11px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.86);
+            border: 1px solid var(--line-color, rgba(0,0,0,.12));
+            color: var(--font-color, #111);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+        .savedMeta, .commentStatus, .commentsList, .riskText { margin-top: 8px; }
+        .commentsList p { margin: 0; }
+        .title { margin-top: 8px; line-height: 1.5; }
+        .tagLink, .mentionLink { color: var(--accent-color, #b84d35); text-decoration: none; font-weight: 700; }
+        .modal-card { background: var(--surface-strong, #fff); width: min(420px, calc(100vw - 24px)); max-height: 80vh; overflow-y: auto; margin: 90px auto; padding: 22px; border-radius: 24px; border: 1px solid var(--line-color, rgba(0,0,0,.08)); box-shadow: var(--shadow-strong, 0 10px 30px rgba(15,23,42,.06)); }
+        .modal-preview { display: none; width: 100%; max-height: 250px; object-fit: contain; border-radius: 8px; margin-bottom: 10px; }
+        .helper-text { font-size: 12px; color: var(--secod-font-color, #666); margin-top: -4px; }
+        .modal-header { display: grid; gap: 6px; margin-bottom: 14px; }
+        .modal-header p { color: var(--secod-font-color, #666); line-height: 1.6; }
+        @media (max-width: 1000px) { .feature-card { margin-inline: 10px; } }
+        @media (max-width: 750px) { .page-hero { margin-inline: 12px; padding: 20px; } .hero-top { flex-direction: column; } }
+    </style>
+</head>
+<body>
+<!-- ===============================
+     Main Feed Layout
+=============================== -->
+<div class="screen-guard">
+<div class="container">
+        <!-- Left navigation -->
+        <nav>
+            <div class="navbar">
+                <div class="instagram-text-logo">
+                    <img decoding="async" src="https://i.postimg.cc/qMFTcDw1/instagram-text.png" id="white-color" alt="">
+                </div>
+                <div class="sub-section" id="darkModeToggle">
+                    <i class="fa-regular fa-moon"></i>
+                    <a href="javascript:void(0)">Theme</a>
+                </div>
+                <div class="sub-section">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <a href="#searchCard">Search</a>
+                </div>
+                <div class="sub-section">
+                    <i class="fa-regular fa-compass"></i>
+                    <a href="#searchResults">Explore</a>
+                </div>
+                <div class="sub-section">
+                    <i class="fa-solid fa-clapperboard"></i>
+                    <a href="#feed">Reels</a>
+                </div>
+                <div class="sub-section">
+                    <i class="fa-regular fa-message"></i>
+                    <a href="#messageCard">Messages</a>
+                </div>
+                <div class="sub-section" id="hidden2">
+                    <i class="fa-regular fa-heart"></i>
+                    <a href="#notificationCard">Notification</a>
+                </div>
+                <div class="sub-section" id="openUpload">
+                    <i class="fa-solid fa-square-plus"></i>
+                    <a href="javascript:void(0)">Create</a>
+                </div>
+                <div class="sub-section">
+                    <div class="profile-img">
+                        <img decoding="async" src="profile.jpeg" id="navProfileAvatar" alt="">
+                    </div>
+                    <a href="#profileCard">Profile</a>
+                </div>
+                <div class="menu-section" id="hidden">
+                    <i class="fa-solid fa-bars"></i>
+                    <a href="#featureCard">More</a>
+                </div>
+                <div class="menu-section" onclick="logout()">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <a href="javascript:void(0)">Logout</a>
+                </div>
+            </div>
+        </nav>
+        <div class="middle-section">
+            <!-- Center feed -->
+            <div class="post-section">
+                <div class="nav-hidden">
+                    <div class="nav-hidden-logo" id="white-2color">
+                        <img decoding="async" src="https://i.postimg.cc/qMFTcDw1/instagram-text.png" alt="">
+                    </div>
+                   <div class="nav-hide-2">
+                     <i class="fa-regular fa-heart"></i>
+                     <i class="fa-regular fa-paper-plane"></i>
+                   </div>
+                </div>
+                <!-- Stories row -->
+                <div class="story-section">
+                    <div class="story"><div class="story-image"><img decoding="async" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQueF8GSgJv5WU5Ox9Xrvau0PegMgcYsQRmb9iQ6_Ts0OT2XQcXsBN-gwVOEoznSZ0gy1RZ1fwJF5gjNli_745tTcaaRCKL6f4i3nz7PWY&s=10" alt=""></div><span>leomessi</span></div>
+                    <div class="story"><div class="story-image"><img decoding="async" src="https://cdn.britannica.com/48/252748-050-C514EFDB/Virat-Kohli-India-celebrates-50th-century-Cricket-November-15-2023.jpg" alt=""></div><span>virat.koh..</span></div>
+                    <div class="story" id="story-2"><div class="story-image"><img decoding="async" src="https://media.cnn.com/api/v1/images/stellar/prod/gettyimages-2234200789.jpg?c=original&q=w_860,c_fill" alt=""></div><span>cristiano</span></div>
+                    <div class="story" id="story-3"><div class="story-image"><img decoding="async" src="https://m.media-amazon.com/images/M/MV5BM2JhZWJmMDEtNTU5MS00YmQ3LTk1NjMtOGFlMjM2MjZlNjg5XkEyXkFqcGc@._V1_.jpg" alt=""></div><span>arianagr..</span></div>
+                    <div class="story" id="story-4"><div class="story-image"><img decoding="async" src="https://imageio.forbes.com/specials-images/imageserve/646e6affb9a2a85595a62c39/0x0.jpg?format=jpg&crop=1573,1574,x239,y256,safe&height=416&width=416&fit=bounds" alt=""></div><span>taylorswi..</span></div>
+                    <div class="story" id="story-5"><div class="story-image"><img decoding="async" src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Neymar_Jr_presentation_-_Press_conference_for_PSG_001_%28cropped%29.jpg/250px-Neymar_Jr_presentation_-_Press_conference_for_PSG_001_%28cropped%29.jpg" alt=""></div><span>neymarjr</span></div>
+                    <div class="story" id="story-6"><div class="story-image"><img decoding="async" src="https://i.guim.co.uk/img/media/67944850a1b5ebd6a0fba9e3528d448ebe360c60/359_0_2469_1482/master/2469.jpg?width=1200&height=900&quality=85&auto=format&fit=crop&s=1157be337c6e200937b038797d772f5f" alt=""></div><span>billieei..</span></div>
+                    <div class="story" id="story-7"><div class="story-image"><img decoding="async" src="https://media.voguearabia.com/photos/6819d1d8ab0eb8b684f6d5dd/2:3/w_2560%2Cc_limit/GettyImages-2213072415.jpg" alt=""></div><span>iamsrk</span></div>
+                </div>
+
+                <!-- Hero / quick actions -->
+                <section class="page-hero">
+                    <div class="hero-top">
+                        <div>
+                            <div class="hero-kicker">Workspace overview</div>
+                            <h1 class="hero-title">Keep your posts, messages, and moderation tools in one clear place.</h1>
+                            <p class="hero-copy">The feed now starts with quick entry points so you can create a post, jump to search, or open your profile without hunting through the sidebar.</p>
+                        </div>
+                        <div class="hero-stats">
+                            <div class="hero-stat">
+                                <strong id="heroPostsCount">0</strong>
+                                <span>posts on your profile</span>
+                            </div>
+                            <div class="hero-stat">
+                                <strong id="heroFollowersCount">0</strong>
+                                <span>followers in your network</span>
+                            </div>
+                            <div class="hero-stat">
+                                <strong id="heroFollowingCount">0</strong>
+                                <span>accounts you follow</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hero-actions">
+                        <button class="hero-action primary" id="heroCreateBtn" type="button"><i class="fa-solid fa-square-plus"></i> Create post</button>
+                        <a class="hero-action" href="#searchCard"><i class="fa-solid fa-magnifying-glass"></i> Search</a>
+                        <a class="hero-action" href="profile.html"><i class="fa-regular fa-user"></i> Open profile</a>
+                    </div>
+                </section>
+
+               <!-- Feed controls -->
+               <div class="feature-card feed-controls" id="featureCard">
+                    <div class="mini-toolbar">
+                        <div>
+                            <h3>Feed controls</h3>
+                            <p class="feed-status" id="feedStatusLabel">Showing community posts</p>
+                        </div>
+                        <div class="feature-actions">
+                            <button class="feature-btn active" id="allFeedBtn" type="button">All posts</button>
+                            <button class="feature-btn secondary" id="followingFeedBtn" type="button">Following</button>
+                        </div>
+                    </div>
+                </div>
+            
+                <!-- Posts list -->
+                <div class="post-area" id="feed">
+                    <div class="post-main">
+                        <div class="post-header">
+                            <div class="post-left-header">
+                                <div class="post-image"><img decoding="async" src="https://images.unsplash.com/photo-1461800919507-79b16743b257?auto=format&fit=crop&w=600&q=60" alt=""></div>
+                                <p class="post-username">Vin Diesel</p>
+                                <i class="fa-solid fa-certificate"></i>
+                                <span class="one-day"> . 1h </span>
+                            </div>
+                            <i class="fa-solid fa-grip-lines"></i>
+                        </div>
+                        <div class="post-main-image">
+                            <img decoding="async" src="https://images.unsplash.com/photo-1535223289827-42f1e9919769?auto=format&fit=crop&w=600&q=60" alt="">
+                        </div>
+                        <div class="post-fotter">
+                            <div class="post-fotter-left">
+                                <i class="fa-regular fa-heart likeBtn" data-liked="0"></i>
+                                <i class="fa-regular fa-message"></i>
+                                <i class="fa-regular fa-paper-plane"></i>
+                            </div>
+                            <i class="fa-regular fa-bookmark saveBtn" data-saved="0"></i>
+                        </div>
+                        <div class="post-description">
+                            <p class="post-liked">Liked by others</p>
+                            <div class="commentsList"></div>
+                            <input type="text" class="commentInput" placeholder="Add a comment...">
+                            <button class="commentBtn" type="button">Post</button>
+                            <p class="commentStatus"></p>
+                        </div>
+                    </div>
+                    <div class="post-main">
+                        <div class="post-header">
+                            <div class="post-left-header">
+                                <div class="post-image"><img decoding="async" src="https://plus.unsplash.com/premium_photo-1684953583774-ccdded89e093?auto=format&fit=crop&w=600&q=60" alt=""></div>
+                                <p class="post-username">Miley Cyrus</p>
+                                <i class="fa-solid fa-certificate"></i>
+                                <span class="one-day"> . 1d </span>
+                            </div>
+                            <i class="fa-solid fa-grip-lines"></i>
+                        </div>
+                        <div class="post-main-image">
+                            <img decoding="async" src="https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&w=600&q=60" alt="">
+                        </div>
+                        <div class="post-fotter">
+                            <div class="post-fotter-left">
+                                <i class="fa-regular fa-heart likeBtn" data-liked="0"></i>
+                                <i class="fa-regular fa-message"></i>
+                                <i class="fa-regular fa-paper-plane"></i>
+                            </div>
+                            <i class="fa-regular fa-bookmark saveBtn" data-saved="0"></i>
+                        </div>
+                        <div class="post-description">
+                            <p class="post-liked">Liked by others</p>
+                            <div class="commentsList"></div>
+                            <input type="text" class="commentInput" placeholder="Add a comment...">
+                            <button class="commentBtn" type="button">Post</button>
+                            <p class="commentStatus"></p>
+                        </div>
+                    </div>
+                    <div class="post-main">
+                        <div class="post-header">
+                            <div class="post-left-header">
+                                <div class="post-image"><img decoding="async" src="https://cdn.pixabay.com/photo/2016/11/29/01/34/man-1866574_1280.jpg" alt=""></div>
+                                <p class="post-username">Katy Perry</p>
+                                <i class="fa-solid fa-certificate"></i>
+                                <span class="one-day"> . 5h </span>
+                            </div>
+                            <i class="fa-solid fa-grip-lines"></i>
+                        </div>
+                        <div class="post-main-image">
+                            <img decoding="async" src="https://images.unsplash.com/photo-1528109966604-5a6a4a964e8d?auto=format&fit=crop&w=600&q=60" alt="">
+                        </div>
+                        <div class="post-fotter">
+                            <div class="post-fotter-left">
+                                <i class="fa-regular fa-heart likeBtn" data-liked="0"></i>
+                                <i class="fa-regular fa-message"></i>
+                                <i class="fa-regular fa-paper-plane"></i>
+                            </div>
+                            <i class="fa-regular fa-bookmark saveBtn" data-saved="0"></i>
+                        </div>
+                        <div class="post-description">
+                            <p class="post-liked">Liked by others</p>
+                            <div class="commentsList"></div>
+                            <input type="text" class="commentInput" placeholder="Add a comment...">
+                            <button class="commentBtn" type="button">Post</button>
+                            <p class="commentStatus"></p>
+                        </div>
+                    </div>
+                    <div class="post-main">
+                        <div class="post-header">
+                            <div class="post-left-header">
+                                <div class="post-image"><img decoding="async" src="https://images.unsplash.com/photo-1567591370504-80142b28f1c1?auto=format&fit=crop&w=600&q=60" alt=""></div>
+                                <p class="post-username">Lady Gaga</p>
+                                <i class="fa-solid fa-certificate"></i>
+                                <span class="one-day"> . 5d </span>
+                            </div>
+                            <i class="fa-solid fa-grip-lines"></i>
+                        </div>
+                        <div class="post-main-image">
+                            <img decoding="async" src="https://plus.unsplash.com/premium_photo-1675433344518-21eb72dfc7a5?auto=format&fit=crop&w=600&q=60" alt="">
+                        </div>
+                        <div class="post-fotter">
+                            <div class="post-fotter-left">
+                                <i class="fa-regular fa-heart likeBtn" data-liked="0"></i>
+                                <i class="fa-regular fa-message"></i>
+                                <i class="fa-regular fa-paper-plane"></i>
+                            </div>
+                            <i class="fa-regular fa-bookmark saveBtn" data-saved="0"></i>
+                        </div>
+                        <div class="post-description">
+                            <p class="post-liked">Liked by others</p>
+                            <div class="commentsList"></div>
+                            <input type="text" class="commentInput" placeholder="Add a comment...">
+                            <button class="commentBtn" type="button">Post</button>
+                            <p class="commentStatus"></p>
+                        </div>
+                    </div>
+                </div>
+           </div>
+           <div class="follow-section">
+                <div class="profile-follow profile-foolow-hovering" id="profileCard">
+                    <div class="profile-follow-left">
+                        <div class="profile-follow-image">
+                            <img decoding="async" src="profile.jpeg" id="profileAvatarPreview" alt="">
+                        </div>
+                        <div class="profile-follow-content">
+                            <p class="profile-id" id="sidebarUsername">_theertha_</p>
+                            <p class="profile-name" id="sidebarFullName">DEEP KIRAN</p>
+                        </div>
+                    </div>
+                    <a href="javascript:void(0)" class="follow" id="postsCount">0 posts</a>
+                </div>
+                <p class="helper-text" id="sidebarBio">No bio yet.</p>
+                <div class="suggestion-follow">
+                    <p class="suggestion">Suggested for you</p>
+                    <a href="javascript:void(0)" class="see-all">see all</a>
+                </div>
+                <div class="profile-follow profile-foolow-hovering">
+                    <div class="profile-follow-left">
+                        <div class="profile-follow-image"><img decoding="async" src="https://www.shutterstock.com/image-vector/user-profile-icon-vector-avatar-600nw-2220431045.jpg" alt=""></div>
+                        <div class="profile-follow-content">
+                            <p class="profile-id">coetofficial</p>
+                            <p class="profile-name">Followed by deva.priya__</p>
+                        </div>
+                    </div>
+                    <a href="javascript:void(0)" class="follow">follow</a>
+                </div>
+                <div class="profile-follow profile-foolow-hovering">
+                    <div class="profile-follow-left">
+                        <div class="profile-follow-image"><img decoding="async" src="https://www.shutterstock.com/image-vector/user-profile-icon-vector-avatar-600nw-2220431045.jpg" alt=""></div>
+                        <div class="profile-follow-content">
+                            <p class="profile-id">ceeeyess</p>
+                            <p class="profile-name">Followed by _theertha_anand_ + 2 more</p>
+                        </div>
+                    </div>
+                    <a href="javascript:void(0)" class="follow">follow</a>
+                </div>
+                <div class="profile-follow profile-foolow-hovering">
+                    <div class="profile-follow-left">
+                        <div class="profile-follow-image"><img decoding="async" src="https://www.shutterstock.com/image-vector/user-profile-icon-vector-avatar-600nw-2220431045.jpg" alt=""></div>
+                        <div class="profile-follow-content">
+                            <p class="profile-id">coet22s</p>
+                            <p class="profile-name">Followed by _theertha_anand_ +....</p>
+                        </div>
+                    </div>
+                    <a href="javascript:void(0)" class="follow">follow</a>
+                </div>
+                <div class="profile-follow profile-foolow-hovering">
+                    <div class="profile-follow-left">
+                        <div class="profile-follow-image"><img decoding="async" src="https://www.shutterstock.com/image-vector/user-profile-icon-vector-avatar-600nw-2220431045.jpg" alt=""></div>
+                        <div class="profile-follow-content">
+                            <p class="profile-id">agnitus_coet</p>
+                            <p class="profile-name">Followed by gopi_ka_</p>
+                        </div>
+                    </div>
+                    <a href="javascript:void(0)" class="follow">follow</a>
+                </div>
+                <div class="profile-follow profile-foolow-hovering">
+                    <div class="profile-follow-left">
+                        <div class="profile-follow-image"><img decoding="async" src="https://www.shutterstock.com/image-vector/user-profile-icon-vector-avatar-600nw-2220431045.jpg" alt=""></div>
+                        <div class="profile-follow-content">
+                            <p class="profile-id">helloguyss</p>
+                            <p class="profile-name">New to Instagram</p>
+                        </div>
+                    </div>
+                    <a href="javascript:void(0)" class="follow">follow</a>
+                </div>
+                <!-- Search -->
+                <div class="feature-card" id="searchCard">
+                    <div class="feature-head">
+                        <div>
+                            <h3>Search</h3>
+                            <p>Find users, hashtags, captions, and mentions from one field.</p>
+                        </div>
+                    </div>
+                    <div class="feature-stack">
+                        <input class="feature-input" id="searchInput" type="text" placeholder="Try @username, #topic, or a caption keyword">
+                        <button class="feature-btn primary" id="searchBtn" type="button">Search</button>
+                        <p class="status-note" id="searchStatus">Results will update here.</p>
+                    </div>
+                        <div class="panel-list" id="searchResults"><div class="panel-empty">Search results will appear here.</div></div>
+                </div>
+                <!-- Notifications -->
+                <div class="feature-card" id="notificationCard">
+                    <div class="feature-head">
+                        <div>
+                            <h3>Notifications</h3>
+                            <p>Likes, follows, comments and messages</p>
+                        </div>
+                        <button class="feature-btn secondary" id="markNotificationsReadBtn" type="button">Read all</button>
+                    </div>
+                    <div class="panel-list" id="notificationList">No notifications</div>
+                </div>
+                <!-- Saved posts -->
+                <div class="feature-card">
+                    <div class="feature-head">
+                        <div>
+                            <h3>Saved posts</h3>
+                            <p>Your bookmarks</p>
+                        </div>
+                        <button class="feature-btn secondary" id="loadSavedBtn" type="button">Refresh</button>
+                    </div>
+                    <div class="panel-list" id="savedPostsList">No saved posts</div>
+                </div>
+                <!-- Messages -->
+                <div class="feature-card" id="messageCard">
+                    <div class="feature-head">
+                        <div>
+                            <h3>Messages</h3>
+                            <p>Send a direct message by username and review the latest replies.</p>
+                        </div>
+                    </div>
+                    <div class="feature-stack">
+                        <input class="feature-input" id="messagePeerInput" type="text" placeholder="Recipient username">
+                        <textarea class="feature-textarea" id="messageInput" placeholder="Write a message. Press Ctrl+Enter to send."></textarea>
+                        <button class="feature-btn primary" id="sendMessageBtn" type="button">Send</button>
+                        <p class="status-note" id="messageStatus">Load a conversation by entering a username.</p>
+                    </div>
+                    <div class="panel-list" id="messageThreadsList"><div class="panel-empty">No conversations yet.</div></div>
+                    <div class="panel-list" id="messageList">No messages</div>
+                </div>
+                <!-- Follow requests -->
+                <div class="feature-card" id="privacyRequestsCard">
+                    <div class="feature-head">
+                        <div>
+                            <h3>Follow requests</h3>
+                            <p>Approve or reject requests when your account is private.</p>
+                        </div>
+                    </div>
+                    <div class="panel-list" id="followRequestsList"><div class="panel-empty">No pending requests.</div></div>
+                </div>
+                <!-- Tag approvals -->
+                <div class="feature-card" id="tagRequestsCard">
+                    <div class="feature-head">
+                        <div>
+                            <h3>Tag approvals</h3>
+                            <p>Control mentions that expose you without consent.</p>
+                        </div>
+                    </div>
+                    <div class="panel-list" id="tagRequestsList"><div class="panel-empty">No pending tag requests.</div></div>
+                </div>
+                <!-- Block / close friends -->
+                <div class="feature-card" id="privacyRelationsCard">
+                    <div class="feature-head">
+                        <div>
+                            <h3>Privacy relations</h3>
+                            <p>Manage blocks and close friends.</p>
+                        </div>
+                    </div>
+                    <div class="feature-stack">
+                        <input class="feature-input" id="privacyTargetInput" type="text" placeholder="Username to block or add">
+                        <div class="feature-actions">
+                            <button class="feature-btn secondary" id="blockUserBtn" type="button">Toggle block</button>
+                            <button class="feature-btn secondary" id="closeFriendBtn" type="button">Toggle close friend</button>
+                        </div>
+                        <p class="status-note" id="privacyRelationsStatus">Manage who can reach you and who can see close-friends posts.</p>
+                    </div>
+                    <div class="panel-list" id="blockedUsersList"><div class="panel-empty">No blocked users.</div></div>
+                    <div class="panel-list" id="closeFriendsList"><div class="panel-empty">No close friends yet.</div></div>
+                </div>
+                <!-- Profile tools -->
+                <div class="feature-card">
+                    <div class="feature-head">
+                        <div>
+                            <h3>Profile tools</h3>
+                            <p>Edit your profile details and privacy rules</p>
+                        </div>
+                    </div>
+                    <div class="profile-tool-grid">
+                        <input class="feature-input" id="profileFullNameInput" type="text" placeholder="Full name">
+                        <textarea class="feature-textarea" id="profileBioInput" placeholder="Bio"></textarea>
+                        <input class="feature-input" id="profileAvatarInput" type="text" placeholder="Avatar image URL">
+                        <label><input type="checkbox" id="privateAccountInput"> Private account</label>
+                        <label><input type="checkbox" id="activityStatusInput" checked> Show activity status</label>
+                        <label><input type="checkbox" id="readReceiptsInput" checked> Enable read receipts</label>
+                        <label><input type="checkbox" id="tagApprovalInput" checked> Require tag approval</label>
+                        <select class="feature-select" id="profileVisibilityInput">
+                            <option value="public">Profile details visible to everyone</option>
+                            <option value="followers">Profile details visible to followers</option>
+                            <option value="private">Profile details visible only to me</option>
+                        </select>
+                        <select class="feature-select" id="messagePrivacyInput">
+                            <option value="everyone">Messages from everyone</option>
+                            <option value="followers">Messages from followers only</option>
+                            <option value="no_one">Messages disabled</option>
+                        </select>
+                        <select class="feature-select" id="commentPrivacyInput">
+                            <option value="everyone">Comments from everyone</option>
+                            <option value="followers">Comments from followers only</option>
+                            <option value="following">Comments from people I follow</option>
+                            <option value="no_one">Comments disabled</option>
+                        </select>
+                        <div class="mini-toolbar">
+                            <span class="helper-text"><span id="followersCount">0</span> followers | <span id="followingCount">0</span> following</span>
+                            <button class="feature-btn primary" id="saveProfileBtn" type="button">Save profile</button>
+                        </div>
+                        <p class="status-note" id="profileStatus">Changes save to your profile and privacy policy.</p>
+                    </div>
+                </div>
+                <!-- Moderation + stego history -->
+                <div class="feature-card">
+                    <div class="feature-head">
+                        <div>
+                            <h3>Moderation</h3>
+                            <p>Recent moderation actions and stego scan history</p>
+                        </div>
+                    </div>
+                    <div class="panel-list" id="moderationList">No moderation activity</div>
+                    <div class="panel-list" id="stegoHistoryList">No stego history</div>
+                </div>
+                <!-- Stego encoder (test tool) -->
+                <div class="feature-card" id="stegoEncodeCard">
+                    <div class="feature-head">
+                        <div>
+                            <h3>Stego encoder</h3>
+                            <p>Embed a hidden message into an image for testing uploads.</p>
+                        </div>
+                    </div>
+                    <div class="feature-stack">
+                        <input class="feature-input" id="stegoEncodeFile" type="file" accept=".png,.jpg,.jpeg,.bmp,.tif,.tiff,.webp,image/png,image/jpeg,image/bmp,image/tiff,image/webp">
+                        <input class="feature-input" id="stegoEncodeMessage" type="text" placeholder="Hidden message (toxic words will be blocked on upload)">
+                        <button class="feature-btn primary" id="stegoEncodeBtn" type="button">Encode and download</button>
+                        <p class="status-note" id="stegoEncodeStatus">Choose an image and message to generate an encoded file.</p>
+                    </div>
+                </div>
+                <p class="copyrights">@All rights reserved by Group_15</p>
+           </div>
+        </div>
+</div>
+</div>
+
+<!-- Upload modal -->
+<div id="uploadModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:2000;">
+  <div class="modal-card">
+    <div class="modal-header">
+        <h3>Create new post</h3>
+        <p>Select a supported image, review the preview, then publish it to the feed.</p>
+    </div>
+    <input type="file" id="imageInput" accept=".png,.jpg,.jpeg,.bmp,.tif,.tiff,.webp,image/png,image/jpeg,image/bmp,image/tiff,image/webp">
+    <p class="helper-text">Supported: PNG, JPG, JPEG, BMP, TIFF, WEBP.</p>
+    <textarea id="captionInput" class="feature-textarea" placeholder="Write a caption..." rows="3"></textarea>
+    <img id="previewImage" class="modal-preview" alt="Preview">
+    <p class="status-note" id="composerStatus">Add an image to enable publishing.</p>
+    <div class="modal-alert" id="uploadAlert">
+      <div class="modal-alert__row">
+        <div class="modal-alert__text" id="uploadAlertText"></div>
+        <button class="modal-alert__close" id="uploadAlertClose" type="button" aria-label="Dismiss">×</button>
+      </div>
+    </div>
+    <div class="composer-fields">
+      <label><input type="checkbox" id="hideToggle" checked> Hide sensitive content</label>
+      <label><input type="checkbox" id="stegoStrictToggle" checked> Block hidden data (strict)</label>
+      <select id="visibilityInput" class="feature-select">
+        <option value="public">Public</option>
+        <option value="followers">Followers only</option>
+        <option value="close_friends">Close friends</option>
+        <option value="private">Only me</option>
+      </select>
+      <input id="manualBlurInput" class="feature-input" type="text" placeholder="Optional blur regions: x1,y1,w,h;x2,y2,w,h">
+    </div>
+    <div class="feature-actions">
+        <button id="createBtn" class="feature-btn secondary" type="button">Check image</button>
+        <button id="uploadBtn" class="feature-btn primary" type="button">Publish post</button>
+        <button id="closeModal" class="feature-btn secondary" type="button">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Upload error overlay (manual close) -->
+<div class="upload-error-overlay" id="uploadErrorOverlay">
+  <div class="upload-error-card">
+    <h4>Upload blocked</h4>
+    <p id="uploadErrorText">This post cannot be uploaded.</p>
+    <div class="upload-error-actions">
+      <button class="feature-btn secondary" id="uploadErrorClose" type="button">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    // ---------------------------------
+    // Core config + state
+    // ---------------------------------
+    const API_BASE = "http://127.0.0.1:8000";
+    const CURRENT_USER = (localStorage.getItem("username") || "_theertha_").trim() || "_theertha_";
+    let CURRENT_FEED_MODE = "all";
+    localStorage.setItem("username", CURRENT_USER);
+
+    // ---------------------------------
+    // DOM references
+    // ---------------------------------
+    const openUpload = document.getElementById("openUpload");
+    const uploadModal = document.getElementById("uploadModal");
+    const closeModal = document.getElementById("closeModal");
+    const createBtn = document.getElementById("createBtn");
+    const imageInput = document.getElementById("imageInput");
+    const previewImage = document.getElementById("previewImage");
+    const uploadBtn = document.getElementById("uploadBtn");
+    const hideToggle = document.getElementById("hideToggle");
+    const stegoStrictToggle = document.getElementById("stegoStrictToggle");
+    const captionInput = document.getElementById("captionInput");
+    const visibilityInput = document.getElementById("visibilityInput");
+    const manualBlurInput = document.getElementById("manualBlurInput");
+    const feed = document.getElementById("feed");
+    const searchInput = document.getElementById("searchInput");
+    const searchBtn = document.getElementById("searchBtn");
+    const searchResults = document.getElementById("searchResults");
+    const notificationList = document.getElementById("notificationList");
+    const savedPostsList = document.getElementById("savedPostsList");
+    const moderationList = document.getElementById("moderationList");
+    const stegoHistoryList = document.getElementById("stegoHistoryList");
+    const messagePeerInput = document.getElementById("messagePeerInput");
+    const messageInput = document.getElementById("messageInput");
+    const sendMessageBtn = document.getElementById("sendMessageBtn");
+    const messageList = document.getElementById("messageList");
+    const messageThreadsList = document.getElementById("messageThreadsList");
+    const stegoEncodeFile = document.getElementById("stegoEncodeFile");
+    const stegoEncodeMessage = document.getElementById("stegoEncodeMessage");
+    const stegoEncodeBtn = document.getElementById("stegoEncodeBtn");
+    const stegoEncodeStatus = document.getElementById("stegoEncodeStatus");
+    const profileAvatarPreview = document.getElementById("profileAvatarPreview");
+    const navProfileAvatar = document.getElementById("navProfileAvatar");
+    const sidebarUsername = document.getElementById("sidebarUsername");
+    const sidebarFullName = document.getElementById("sidebarFullName");
+    const sidebarBio = document.getElementById("sidebarBio");
+    const postsCount = document.getElementById("postsCount");
+    const followersCount = document.getElementById("followersCount");
+    const followingCount = document.getElementById("followingCount");
+    const profileFullNameInput = document.getElementById("profileFullNameInput");
+    const profileBioInput = document.getElementById("profileBioInput");
+    const profileAvatarInput = document.getElementById("profileAvatarInput");
+    const privateAccountInput = document.getElementById("privateAccountInput");
+    const profileVisibilityInput = document.getElementById("profileVisibilityInput");
+    const messagePrivacyInput = document.getElementById("messagePrivacyInput");
+    const commentPrivacyInput = document.getElementById("commentPrivacyInput");
+    const activityStatusInput = document.getElementById("activityStatusInput");
+    const readReceiptsInput = document.getElementById("readReceiptsInput");
+    const tagApprovalInput = document.getElementById("tagApprovalInput");
+    const saveProfileBtn = document.getElementById("saveProfileBtn");
+    const followRequestsList = document.getElementById("followRequestsList");
+    const tagRequestsList = document.getElementById("tagRequestsList");
+    const privacyTargetInput = document.getElementById("privacyTargetInput");
+    const blockUserBtn = document.getElementById("blockUserBtn");
+    const closeFriendBtn = document.getElementById("closeFriendBtn");
+    const blockedUsersList = document.getElementById("blockedUsersList");
+    const closeFriendsList = document.getElementById("closeFriendsList");
+    const privacyRelationsStatus = document.getElementById("privacyRelationsStatus");
+    const markNotificationsReadBtn = document.getElementById("markNotificationsReadBtn");
+    const loadSavedBtn = document.getElementById("loadSavedBtn");
+    const allFeedBtn = document.getElementById("allFeedBtn");
+    const followingFeedBtn = document.getElementById("followingFeedBtn");
+    const feedStatusLabel = document.getElementById("feedStatusLabel");
+    const darkModeToggle = document.getElementById("darkModeToggle");
+    const heroCreateBtn = document.getElementById("heroCreateBtn");
+    const heroPostsCount = document.getElementById("heroPostsCount");
+    const heroFollowersCount = document.getElementById("heroFollowersCount");
+    const heroFollowingCount = document.getElementById("heroFollowingCount");
+    const searchStatus = document.getElementById("searchStatus");
+    const messageStatus = document.getElementById("messageStatus");
+    const profileStatus = document.getElementById("profileStatus");
+    const composerStatus = document.getElementById("composerStatus");
+    const uploadAlert = document.getElementById("uploadAlert");
+    const uploadAlertText = document.getElementById("uploadAlertText");
+    const uploadAlertClose = document.getElementById("uploadAlertClose");
+    const uploadErrorOverlay = document.getElementById("uploadErrorOverlay");
+    const uploadErrorText = document.getElementById("uploadErrorText");
+    const uploadErrorClose = document.getElementById("uploadErrorClose");
+
+    function showUploadAlert(message) {
+        if (uploadAlertText) uploadAlertText.textContent = message;
+        uploadAlert?.classList.add("visible");
+    }
+
+    function hideUploadAlert() {
+        uploadAlert?.classList.remove("visible");
+    }
+
+    uploadAlertClose?.addEventListener("click", hideUploadAlert);
+
+    function showUploadError(message) {
+        if (uploadErrorText) uploadErrorText.textContent = message;
+        if (uploadErrorOverlay) uploadErrorOverlay.style.display = "flex";
+    }
+
+    function hideUploadError() {
+        if (uploadErrorOverlay) uploadErrorOverlay.style.display = "none";
+    }
+
+    uploadErrorClose?.addEventListener("click", hideUploadError);
+
+    // ---------------------------------
+    // Upload helpers
+    // ---------------------------------
+    const SUPPORTED_MIME_TYPES = new Set([
+        "image/png",
+        "image/jpeg",
+        "image/jpg",
+        "image/bmp",
+        "image/tiff",
+        "image/webp",
+    ]);
+    const SUPPORTED_EXTENSIONS = new Set(["png", "jpg", "jpeg", "bmp", "tif", "tiff", "webp"]);
+
+    const isSupportedImage = (file) => {
+        if (!file) return false;
+        const type = (file.type || "").toLowerCase();
+        if (SUPPORTED_MIME_TYPES.has(type)) return true;
+        const name = (file.name || "").toLowerCase();
+        const ext = name.includes(".") ? name.split(".").pop() : "";
+        return SUPPORTED_EXTENSIONS.has(ext);
+    };
+
+    // Escape HTML to prevent XSS in injected strings
+    const escapeHtml = (value) => {
+        const div = document.createElement("div");
+        div.innerText = value ?? "";
+        return div.innerHTML;
+    };
+
+    // UI rendering helpers
+    const createPanelItem = (title, subtitle, extraStyle = "") => `<div class="panel-item" style="${extraStyle}"><strong>${title}</strong><small>${subtitle}</small></div>`;
+    const createRequestItem = (username) => `<div class="panel-item"><strong>${escapeHtml(username)}</strong><small>Pending follow request</small><div class="feature-actions"><button class="feature-btn primary followRequestActionBtn" data-action="approve" data-username="${escapeHtml(username)}" type="button">Approve</button><button class="feature-btn secondary followRequestActionBtn" data-action="reject" data-username="${escapeHtml(username)}" type="button">Reject</button></div></div>`;
+    const createTagRequestItem = (row) => {
+        const commentAttr = row.comment_id ? ` data-comment-id="${row.comment_id}"` : "";
+        return `<div class="panel-item"><strong>${escapeHtml(row.requester_username || "Unknown")}</strong><small>Tagged you in a post</small>${row.caption_preview ? `<small>${escapeHtml(row.caption_preview)}</small>` : ""}<div class="feature-actions"><button class="feature-btn primary tagRequestActionBtn" data-action="approve" data-post-id="${row.post_id}"${commentAttr} type="button">Approve</button><button class="feature-btn secondary tagRequestActionBtn" data-action="reject" data-post-id="${row.post_id}"${commentAttr} type="button">Reject</button></div></div>`;
+    };
+    const createCommentMarkup = (comment) => `<p><strong>${escapeHtml(comment.username || "user")}:</strong> ${escapeHtml(comment.content || "")}</p>`;
+    const getLikeText = (count) => !count ? "Liked by others" : count === 1 ? "1 like" : `${count} likes`;
+    const renderRiskReport = (riskReport) => {
+        if (!riskReport) return "";
+        const parts = [];
+        if (riskReport.license_plate_blurs) parts.push(`${riskReport.license_plate_blurs} license plate blur${riskReport.license_plate_blurs === 1 ? "" : "s"}`);
+        if (riskReport.aadhaar_blurs) parts.push(`${riskReport.aadhaar_blurs} Aadhaar blur${riskReport.aadhaar_blurs === 1 ? "" : "s"}`);
+        if (riskReport.card_blurs) parts.push(`${riskReport.card_blurs} card blur${riskReport.card_blurs === 1 ? "" : "s"}`);
+        if (riskReport.manual_blur_regions) parts.push(`${riskReport.manual_blur_regions} manual blur${riskReport.manual_blur_regions === 1 ? "" : "s"}`);
+        const message = parts.length ? `Protected: ${parts.join(", ")}.` : (riskReport.reason || riskReport.message || "Processed");
+        return `<p class="riskText">${escapeHtml(message)}</p>`;
+    };
+    const updateLikeButton = (icon, liked) => { icon.classList.toggle("fa-solid", liked); icon.classList.toggle("fa-regular", !liked); icon.style.color = liked ? "#ed4956" : ""; icon.dataset.liked = liked ? "1" : "0"; };
+    const updateSaveButton = (icon, saved) => { icon.classList.toggle("fa-solid", saved); icon.classList.toggle("fa-regular", !saved); icon.dataset.saved = saved ? "1" : "0"; };
+    const formatCaption = (text) => escapeHtml(text).replace(/(^|\\s)#([a-zA-Z0-9_]+)/g, '$1<a href="#" class="tagLink" data-tag="$2">#$2</a>').replace(/(^|\\s)@([a-zA-Z0-9_.]+)/g, '$1<a href="#" class="mentionLink" data-user="$2">@$2</a>');
+    const STATUS_LINGER_MS = 8000;
+    const COMMENT_STATUS_LINGER_MS = 8000;
+    const statusTimers = new WeakMap();
+    const commentStatusTimers = new WeakMap();
+    const setStatus = (element, message, kind = "", lingerMs = 0, clearMessage = "") => {
+        if (!element) return;
+        element.className = `status-note${kind ? ` ${kind}` : ""}`;
+        element.innerText = message;
+        const priorTimer = statusTimers.get(element);
+        if (priorTimer) {
+            window.clearTimeout(priorTimer);
+            statusTimers.delete(element);
+        }
+        if (lingerMs > 0) {
+            const timer = window.setTimeout(() => {
+                if (element.innerText === message) {
+                    element.className = "status-note";
+                    element.innerText = clearMessage;
+                }
+            }, lingerMs);
+            statusTimers.set(element, timer);
+        }
+    };
+    const setCommentStatus = (element, message, color, lingerMs = COMMENT_STATUS_LINGER_MS) => {
+        if (!element) return;
+        element.style.color = color;
+        element.innerText = message;
+        const priorTimer = commentStatusTimers.get(element);
+        if (priorTimer) {
+            window.clearTimeout(priorTimer);
+            commentStatusTimers.delete(element);
+        }
+        if (lingerMs > 0) {
+            const timer = window.setTimeout(() => {
+                if (element.innerText === message) {
+                    element.innerText = "";
+                }
+            }, lingerMs);
+            commentStatusTimers.set(element, timer);
+        }
+    };
+
+    // ---------------------------------
+    // Messaging: conversation list
+    // ---------------------------------
+    function renderMessageThreads(data) {
+        if (!messageThreadsList) return;
+        const threads = new Map();
+        (data || []).forEach((row) => {
+            const sender = (row.sender_username || "").trim();
+            const receiver = (row.receiver_username || "").trim();
+            const peer = sender === CURRENT_USER ? receiver : sender;
+            if (!peer) return;
+            const prev = threads.get(peer);
+            if (!prev || (row.id || 0) > (prev.id || 0)) {
+                threads.set(peer, { ...row, peer });
+            }
+        });
+        const sorted = Array.from(threads.values()).sort((a, b) => (b.id || 0) - (a.id || 0));
+        messageThreadsList.innerHTML = sorted.length
+            ? sorted.map((row) => {
+                const previewBase = `${row.sender_username === CURRENT_USER ? "You: " : ""}${row.content || ""}`.trim();
+                const preview = previewBase.length > 64 ? `${previewBase.slice(0, 64)}...` : (previewBase || "No messages yet.");
+                return `<div class="panel-item messageThread" data-peer="${encodeURIComponent(row.peer)}"><strong>${escapeHtml(row.peer)}</strong><small>${escapeHtml(preview)}</small></div>`;
+            }).join("")
+            : `<div class="panel-empty">No conversations yet.</div>`;
+    }
+
+    async function loadMessageThreads() {
+        try {
+            const response = await fetch(`${API_BASE}/messages?username=${encodeURIComponent(CURRENT_USER)}`);
+            if (!response.ok) return;
+            renderMessageThreads(await response.json());
+        } catch (err) {
+            console.error("Failed to load conversations", err);
+        }
+    }
+
+    // ---------------------------------
+    // Search results rendering
+    // ---------------------------------
+    function renderSearchResults(data) {
+        const sections = [];
+        if (data.users?.length) sections.push(data.users.map((user) => createPanelItem(escapeHtml(user.username), escapeHtml(user.full_name || "User"))).join(""));
+        if (data.posts?.length) sections.push(data.posts.map((post) => createPanelItem(escapeHtml(post.username), escapeHtml(post.caption_public || post.caption || "Post"))).join(""));
+        if (data.comments?.length) sections.push(data.comments.map((comment) => createPanelItem(escapeHtml(comment.username || "Comment"), escapeHtml(comment.content || ""))).join(""));
+        const resultCount = (data.users?.length || 0) + (data.posts?.length || 0) + (data.comments?.length || 0);
+        setStatus(searchStatus, resultCount ? `Found ${resultCount} result${resultCount === 1 ? "" : "s"}.` : "No matches found.", resultCount ? "success" : "");
+        searchResults.innerHTML = sections.length ? sections.join("") : `<div class="panel-empty">No matches found.</div>`;
+    }
+
+    // ---------------------------------
+    // Privacy + requests dashboard
+    // ---------------------------------
+    async function loadPrivacyOverview() {
+        try {
+            const response = await fetch(`${API_BASE}/privacy/overview?username=${encodeURIComponent(CURRENT_USER)}`);
+            if (!response.ok) return;
+            const data = await response.json();
+            const privacy = data.privacy || {};
+            privateAccountInput.checked = Boolean(privacy.is_private);
+            profileVisibilityInput.value = privacy.profile_visibility || "public";
+            messagePrivacyInput.value = privacy.message_privacy || "everyone";
+            commentPrivacyInput.value = privacy.comment_privacy || "everyone";
+            activityStatusInput.checked = Boolean(privacy.activity_status_visible);
+            readReceiptsInput.checked = Boolean(privacy.read_receipts_enabled);
+            tagApprovalInput.checked = Boolean(privacy.tagged_post_approval);
+            followRequestsList.innerHTML = data.follow_requests?.length ? data.follow_requests.map((row) => createRequestItem(row.requester_username)).join("") : `<div class="panel-empty">No pending requests.</div>`;
+            tagRequestsList.innerHTML = data.tag_requests?.length ? data.tag_requests.map((row) => createTagRequestItem(row)).join("") : `<div class="panel-empty">No pending tag requests.</div>`;
+            blockedUsersList.innerHTML = data.blocked_users?.length ? data.blocked_users.map((name) => createPanelItem(escapeHtml(name), "Blocked account")).join("") : `<div class="panel-empty">No blocked users.</div>`;
+            closeFriendsList.innerHTML = data.close_friends?.length ? data.close_friends.map((name) => createPanelItem(escapeHtml(name), "Close friend")).join("") : `<div class="panel-empty">No close friends yet.</div>`;
+        } catch (err) {
+            console.error("Failed to load privacy overview", err);
+        }
+    }
+
+    // ---------------------------------
+    // Feed rendering
+    // ---------------------------------
+    function renderDbPost(postData) {
+        const post = document.createElement("div");
+        post.className = "post-main db-post";
+        post.dataset.postId = String(postData.id);
+        const captionText = (postData.caption_public ?? postData.caption ?? "").trim();
+        const commentsHtml = (postData.comments || []).map(createCommentMarkup).join("");
+        const postOwner = (postData.username || CURRENT_USER).trim();
+        const isOwner = postOwner === CURRENT_USER;
+        const avatar = postData.owner_profile?.avatar_url || "profile.jpeg";
+        const headerAction = isOwner ? `<button class="deletePostBtn" data-owned="1" type="button">Delete</button>` : `<button class="post-action-btn followUserBtn" data-username="${escapeHtml(postOwner)}" type="button">${postData.viewer_follows_owner ? "Following" : "Follow"}</button>`;
+
+        post.innerHTML = `
+            <div class="post-header">
+                <div class="post-left-header">
+                    <div class="post-image"><img src="${escapeHtml(avatar)}" alt=""></div>
+                    <p class="post-username">${escapeHtml(postOwner)}</p>
+                    <i class="fa-solid fa-certificate"></i>
+                    <span class="one-day"> . just now </span>
+                </div>
+                ${headerAction}
+            </div>
+            <div class="post-main-image">
+                <img src="${API_BASE}${postData.image_url}" alt="" draggable="false">
+                <div class="watermark">${escapeHtml(postOwner)}</div>
+            </div>
+            <div class="post-fotter">
+                <div class="post-fotter-left">
+                    <i class="fa-${postData.liked_by_user ? "solid" : "regular"} fa-heart likeBtn" data-liked="${postData.liked_by_user ? "1" : "0"}" style="${postData.liked_by_user ? "color:#ed4956;" : ""}"></i>
+                    <i class="fa-regular fa-message"></i>
+                    <i class="fa-regular fa-paper-plane"></i>
+                </div>
+                <i class="fa-${postData.saved_by_user ? "solid" : "regular"} fa-bookmark saveBtn" data-saved="${postData.saved_by_user ? "1" : "0"}"></i>
+            </div>
+            <div class="post-description">
+                <p class="post-liked">${getLikeText(postData.likes_count || 0)}</p>
+                <p class="savedMeta">Saved ${postData.saved_count || 0} times | ${escapeHtml(postData.visibility || "public")}</p>
+                ${captionText ? `<p class="title"><span>${escapeHtml(postOwner)}</span> ${formatCaption(captionText)}</p>` : ""}
+                ${renderRiskReport(postData.risk_report)}
+                <div class="commentsList">${commentsHtml}</div>
+                <input type="text" class="commentInput" placeholder="Add a comment...">
+                <button class="commentBtn" type="button">Post</button>
+                <p class="commentStatus"></p>
+            </div>
+        `;
+        return post;
+    }
+
+    // Fetch posts from backend and render them
+    async function loadStoredPosts() {
+        try {
+            document.querySelectorAll(".db-post").forEach((node) => node.remove());
+            const response = await fetch(`${API_BASE}/posts?username=${encodeURIComponent(CURRENT_USER)}&feed_mode=${encodeURIComponent(CURRENT_FEED_MODE)}`);
+            if (!response.ok) return;
+            const posts = await response.json();
+            posts.reverse().forEach((postData) => feed.prepend(renderDbPost(postData)));
+        } catch (err) {
+            console.error("Failed to load posts", err);
+        }
+    }
+
+    // Load current user profile and sidebar stats
+    async function loadProfile() {
+        try {
+            const response = await fetch(`${API_BASE}/profile/${encodeURIComponent(CURRENT_USER)}?viewer=${encodeURIComponent(CURRENT_USER)}`);
+            if (!response.ok) return;
+            const profile = await response.json();
+            sidebarUsername.innerText = profile.username;
+            sidebarFullName.innerText = profile.full_name || profile.username;
+            sidebarBio.innerText = profile.bio || "No bio yet.";
+            postsCount.innerText = `${profile.posts.length || 0} posts`;
+            followersCount.innerText = String(profile.followers_count || 0);
+            followingCount.innerText = String(profile.following_count || 0);
+            heroPostsCount.innerText = String(profile.posts.length || 0);
+            heroFollowersCount.innerText = String(profile.followers_count || 0);
+            heroFollowingCount.innerText = String(profile.following_count || 0);
+            profileFullNameInput.value = profile.full_name || "";
+            profileBioInput.value = profile.bio || "";
+            profileAvatarInput.value = profile.avatar_url || "";
+            privateAccountInput.checked = Boolean(profile.is_private);
+            profileVisibilityInput.value = profile.privacy?.profile_visibility || "public";
+            messagePrivacyInput.value = profile.privacy?.message_privacy || "everyone";
+            commentPrivacyInput.value = profile.privacy?.comment_privacy || "everyone";
+            activityStatusInput.checked = Boolean(profile.privacy?.activity_status_visible ?? true);
+            readReceiptsInput.checked = Boolean(profile.privacy?.read_receipts_enabled ?? true);
+            tagApprovalInput.checked = Boolean(profile.privacy?.tagged_post_approval ?? true);
+            if (profile.avatar_url) {
+                profileAvatarPreview.src = profile.avatar_url;
+                navProfileAvatar.src = profile.avatar_url;
+            }
+        } catch (err) {
+            console.error("Failed to load profile", err);
+        }
+    }
+
+    // Load notifications list
+    async function loadNotifications() {
+        try {
+            const response = await fetch(`${API_BASE}/notifications?username=${encodeURIComponent(CURRENT_USER)}`);
+            if (!response.ok) return;
+            const data = await response.json();
+            notificationList.innerHTML = data.length ? data.map((item) => createPanelItem(escapeHtml(item.message), item.is_read ? "Read" : "Unread", item.is_read ? "opacity:.65;" : "")).join("") : `<div class="panel-empty">No notifications yet.</div>`;
+        } catch (err) {
+            console.error("Failed to load notifications", err);
+        }
+    }
+
+    // Load saved posts list
+    async function loadSavedPosts() {
+        try {
+            const response = await fetch(`${API_BASE}/saved-posts?username=${encodeURIComponent(CURRENT_USER)}`);
+            if (!response.ok) return;
+            const data = await response.json();
+            savedPostsList.innerHTML = data.length ? data.map((item) => createPanelItem(escapeHtml(item.username), escapeHtml(item.caption_public || item.caption || ""))).join("") : `<div class="panel-empty">No saved posts yet.</div>`;
+        } catch (err) {
+            console.error("Failed to load saved posts", err);
+        }
+    }
+
+    // Load moderation activity
+    async function loadModeration() {
+        try {
+            const response = await fetch(`${API_BASE}/moderation/logs?username=${encodeURIComponent(CURRENT_USER)}`);
+            if (!response.ok) return;
+            const data = await response.json();
+            moderationList.innerHTML = data.slice(0, 8).map((row) => createPanelItem(`${escapeHtml(row.target_type)} | ${escapeHtml(row.status)}`, escapeHtml(row.reason || ""))).join("") || `<div class="panel-empty">No moderation activity.</div>`;
+        } catch (err) {
+            console.error("Failed to load moderation", err);
+        }
+    }
+
+    // Load stego scan history
+    async function loadStegoHistory() {
+        try {
+            const response = await fetch(`${API_BASE}/stego/history?username=${encodeURIComponent(CURRENT_USER)}`);
+            if (!response.ok) return;
+            const data = await response.json();
+            stegoHistoryList.innerHTML = data.slice(0, 8).map((row) => createPanelItem(`${escapeHtml(row.filename)} | ${escapeHtml(row.verdict)}`, escapeHtml(row.reason || ""))).join("") || `<div class="panel-empty">No stego scan history.</div>`;
+        } catch (err) {
+            console.error("Failed to load stego history", err);
+        }
+    }
+
+    // Load messages for selected peer
+    async function loadMessages() {
+        try {
+            const peer = messagePeerInput.value.trim();
+            if (!peer) {
+                messageList.innerHTML = `<div class="panel-empty">Enter a username to load a conversation.</div>`;
+                setStatus(messageStatus, "Enter a username to load messages.");
+                return;
+            }
+            const response = await fetch(`${API_BASE}/messages?username=${encodeURIComponent(CURRENT_USER)}&peer=${encodeURIComponent(peer)}`);
+            if (!response.ok) {
+                let message = "Failed to load messages.";
+                try {
+                    const errorData = await response.json();
+                    if (errorData.detail) message = errorData.detail;
+                } catch (err) {}
+                setStatus(messageStatus, message, "error");
+                return;
+            }
+            const data = await response.json();
+            messageList.innerHTML = data.slice(-10).map((row) => createPanelItem(escapeHtml(row.sender_username), `${escapeHtml(row.content)}${row.is_seen ? " • Seen" : ""}`)).join("") || `<div class="panel-empty">No messages in this conversation yet.</div>`;
+            const readForm = new FormData();
+            readForm.append("username", CURRENT_USER);
+            readForm.append("peer", peer);
+            fetch(`${API_BASE}/messages/read`, { method: "POST", body: readForm }).catch(() => {});
+            setStatus(messageStatus, data.length ? `Showing the latest ${Math.min(data.length, 10)} message${data.length === 1 ? "" : "s"}.` : "No messages in this conversation yet.", data.length ? "success" : "");
+            await loadMessageThreads();
+        } catch (err) {
+            console.error("Failed to load messages", err);
+            setStatus(messageStatus, "Failed to load messages.", "error");
+        }
+    }
+
+    // ---------------------------------
+    // Upload modal flow
+    // ---------------------------------
+    function openComposer() {
+        uploadModal.style.display = "block";
+        setStatus(composerStatus, "Add an image to enable publishing.");
+        hideUploadAlert();
+        hideUploadError();
+    }
+
+    // Validate and send upload request to backend
+    async function handleUpload() {
+        if (!imageInput.files.length) {
+            setStatus(composerStatus, "Select an image first.", "error");
+            return;
+        }
+        const file = imageInput.files[0];
+        if (!isSupportedImage(file)) {
+            setStatus(composerStatus, "Unsupported image type. Use PNG, JPG, JPEG, BMP, TIFF, or WEBP.", "error");
+            imageInput.value = "";
+            previewImage.style.display = "none";
+            return;
+        }
+
+        uploadBtn.disabled = true;
+        setStatus(composerStatus, "Publishing post...");
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("hide", hideToggle.checked);
+        formData.append("stego_strict", stegoStrictToggle && stegoStrictToggle.checked ? "1" : "0");
+        formData.append("caption", captionInput.value);
+        formData.append("username", CURRENT_USER);
+        formData.append("visibility", visibilityInput.value);
+        formData.append("blur_regions", manualBlurInput.value.trim());
+
+        try {
+            const response = await fetch(`${API_BASE}/upload`, { method: "POST", body: formData });
+            if (!response.ok) {
+                let errorMessage = "Upload failed.";
+                try {
+                    const errorData = await response.json();
+                    if (errorData.detail) errorMessage = errorData.detail;
+                } catch (e) {}
+                setStatus(composerStatus, errorMessage, "error");
+                showUploadAlert(errorMessage);
+                showUploadError(errorMessage);
+                return;
+            }
+
+            const postData = await response.json();
+            feed.prepend(renderDbPost(postData));
+            uploadModal.style.display = "none";
+            imageInput.value = "";
+            captionInput.value = "";
+            manualBlurInput.value = "";
+            previewImage.style.display = "none";
+            setStatus(composerStatus, "Post published.", "success");
+            hideUploadAlert();
+            hideUploadError();
+            await loadProfile();
+            await loadModeration();
+            await loadStegoHistory();
+        } catch (err) {
+            console.error("Failed to upload post", err);
+            const message = String(err?.message || "").includes("Failed to fetch")
+                ? `Cannot reach ${API_BASE}. Start the backend server and try again.`
+                : "Failed to publish post.";
+            setStatus(composerStatus, message, "error");
+            showUploadAlert(message);
+            showUploadError(message);
+        } finally {
+            uploadBtn.disabled = false;
+        }
+    }
+
+    openUpload.onclick = openComposer;
+    heroCreateBtn.onclick = openComposer;
+    closeModal.onclick = () => { uploadModal.style.display = "none"; hideUploadAlert(); };
+    uploadModal.onclick = (event) => { if (event.target === uploadModal) uploadModal.style.display = "none"; };
+
+    imageInput.onchange = () => {
+        const file = imageInput.files[0];
+        if (!file) return;
+        if (!isSupportedImage(file)) {
+            setStatus(composerStatus, "Unsupported image type. Use PNG, JPG, JPEG, BMP, TIFF, or WEBP.", "error");
+            imageInput.value = "";
+            previewImage.style.display = "none";
+            return;
+        }
+        previewImage.src = URL.createObjectURL(file);
+        previewImage.style.display = "block";
+        setStatus(composerStatus, `${file.name} is ready to publish.`, "success");
+    };
+
+    uploadBtn.onclick = handleUpload;
+    createBtn.onclick = () => {
+        if (!imageInput.files.length) {
+            setStatus(composerStatus, "Choose an image to preview first.", "error");
+            return;
+        }
+        setStatus(composerStatus, "Preview looks good. You can publish now.", "success");
+    };
+
+    searchBtn.onclick = async () => {
+        const q = searchInput.value.trim();
+        if (!q) {
+            setStatus(searchStatus, "Type something to search.");
+            searchResults.innerHTML = `<div class="panel-empty">Search results will appear here.</div>`;
+            return;
+        }
+        try {
+            setStatus(searchStatus, "Searching...");
+            const response = await fetch(`${API_BASE}/search?q=${encodeURIComponent(q)}&username=${encodeURIComponent(CURRENT_USER)}`);
+            if (!response.ok) return;
+            renderSearchResults(await response.json());
+        } catch (err) {
+            console.error("Failed to search", err);
+            setStatus(searchStatus, "Search failed.", "error");
+        }
+    };
+
+    markNotificationsReadBtn.onclick = async () => {
+        const formData = new FormData();
+        formData.append("username", CURRENT_USER);
+        try {
+            await fetch(`${API_BASE}/notifications/read-all`, { method: "POST", body: formData });
+            await loadNotifications();
+        } catch (err) {
+            console.error("Failed to mark notifications read", err);
+        }
+    };
+
+    // ---------------------------------
+    // Stego test tool (encode)
+    // ---------------------------------
+    if (stegoEncodeBtn) {
+        stegoEncodeBtn.onclick = async () => {
+            const file = stegoEncodeFile?.files?.[0];
+            const message = stegoEncodeMessage?.value?.trim();
+            if (!file) {
+                setStatus(stegoEncodeStatus, "Select an image to encode.", "error", STATUS_LINGER_MS, "Choose an image and message to generate an encoded file.");
+                return;
+            }
+            if (!message) {
+                setStatus(stegoEncodeStatus, "Enter a hidden message to encode.", "error", STATUS_LINGER_MS, "Choose an image and message to generate an encoded file.");
+                return;
+            }
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("message", message);
+            setStatus(stegoEncodeStatus, "Encoding image...");
+            try {
+                const response = await fetch(`${API_BASE}/steganography/encode`, { method: "POST", body: formData });
+                if (!response.ok) {
+                    let errorMessage = "Failed to encode image.";
+                    try {
+                        const errorData = await response.json();
+                        if (errorData.detail) errorMessage = errorData.detail;
+                    } catch (err) {}
+                    setStatus(stegoEncodeStatus, errorMessage, "error", STATUS_LINGER_MS, "Choose an image and message to generate an encoded file.");
+                    return;
+                }
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const safeName = (file.name || "stego.png").replace(/\s+/g, "_");
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = `stego_${safeName}`;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                URL.revokeObjectURL(url);
+                setStatus(stegoEncodeStatus, "Encoded image downloaded. Upload it to test blocking.", "success", STATUS_LINGER_MS, "Choose an image and message to generate an encoded file.");
+            } catch (err) {
+                console.error("Failed to encode image", err);
+                const message = String(err?.message || "").includes("Failed to fetch")
+                    ? `Cannot reach ${API_BASE}. Start the backend server and try again.`
+                    : "Failed to encode image.";
+                setStatus(stegoEncodeStatus, message, "error", STATUS_LINGER_MS, "Choose an image and message to generate an encoded file.");
+            }
+        };
+    }
+
+    // ---------------------------------
+    // Button actions
+    // ---------------------------------
+    loadSavedBtn.onclick = loadSavedPosts;
+    saveProfileBtn.onclick = async () => {
+        const formData = new FormData();
+        formData.append("username", CURRENT_USER);
+        formData.append("full_name", profileFullNameInput.value);
+        formData.append("bio", profileBioInput.value);
+        formData.append("avatar_url", profileAvatarInput.value);
+        formData.append("is_private", privateAccountInput.checked ? "1" : "0");
+        formData.append("profile_visibility", profileVisibilityInput.value);
+        formData.append("message_privacy", messagePrivacyInput.value);
+        formData.append("comment_privacy", commentPrivacyInput.value);
+        formData.append("activity_status_visible", activityStatusInput.checked ? "1" : "0");
+        formData.append("read_receipts_enabled", readReceiptsInput.checked ? "1" : "0");
+        formData.append("tagged_post_approval", tagApprovalInput.checked ? "1" : "0");
+        try {
+            const response = await fetch(`${API_BASE}/profile/update`, { method: "POST", body: formData });
+            if (response.ok) {
+                await loadProfile();
+                await loadPrivacyOverview();
+                await loadStoredPosts();
+                setStatus(profileStatus, "Profile updated.", "success");
+            }
+        } catch (err) {
+            console.error("Failed to save profile", err);
+            setStatus(profileStatus, "Failed to save profile.", "error");
+        }
+    };
+
+    sendMessageBtn.onclick = async () => {
+        const peer = messagePeerInput.value.trim();
+        const content = messageInput.value.trim();
+        if (!peer || !content) {
+            setStatus(messageStatus, "Add both a recipient and a message.", "error");
+            return;
+        }
+        const formData = new FormData();
+        formData.append("sender_username", CURRENT_USER);
+        formData.append("receiver_username", peer);
+        formData.append("content", content);
+        try {
+            const response = await fetch(`${API_BASE}/messages`, { method: "POST", body: formData });
+            if (response.ok) {
+                messageInput.value = "";
+                await loadMessages();
+                await loadMessageThreads();
+                await loadNotifications();
+                setStatus(messageStatus, "Message sent.", "success");
+            } else {
+                let message = "Failed to send message.";
+                try {
+                    const errorData = await response.json();
+                    if (errorData.detail) message = errorData.detail;
+                } catch (err) {}
+                setStatus(messageStatus, message, "error");
+            }
+        } catch (err) {
+            console.error("Failed to send message", err);
+            setStatus(messageStatus, "Failed to send message.", "error");
+        }
+    };
+
+    blockUserBtn.onclick = async () => {
+        const target = privacyTargetInput.value.trim();
+        if (!target) {
+            setStatus(privacyRelationsStatus, "Enter a username to block or unblock.", "error");
+            return;
+        }
+        const formData = new FormData();
+        formData.append("username", CURRENT_USER);
+        formData.append("target_username", target);
+        try {
+            const response = await fetch(`${API_BASE}/privacy/block`, { method: "POST", body: formData });
+            if (!response.ok) throw new Error("Unable to update block list.");
+            const data = await response.json();
+            setStatus(privacyRelationsStatus, data.blocked ? `${target} is now blocked.` : `${target} was removed from your block list.`, "success");
+            privacyTargetInput.value = "";
+            await loadPrivacyOverview();
+            await loadStoredPosts();
+        } catch (err) {
+            console.error("Failed to update block list", err);
+            setStatus(privacyRelationsStatus, "Failed to update block list.", "error");
+        }
+    };
+
+    closeFriendBtn.onclick = async () => {
+        const target = privacyTargetInput.value.trim();
+        if (!target) {
+            setStatus(privacyRelationsStatus, "Enter a username to manage close friends.", "error");
+            return;
+        }
+        const formData = new FormData();
+        formData.append("username", CURRENT_USER);
+        formData.append("target_username", target);
+        try {
+            const response = await fetch(`${API_BASE}/privacy/close-friends`, { method: "POST", body: formData });
+            if (!response.ok) throw new Error("Unable to update close friends.");
+            const data = await response.json();
+            setStatus(privacyRelationsStatus, data.is_close_friend ? `${target} added to close friends.` : `${target} removed from close friends.`, "success");
+            privacyTargetInput.value = "";
+            await loadPrivacyOverview();
+        } catch (err) {
+            console.error("Failed to update close friends", err);
+            setStatus(privacyRelationsStatus, "Failed to update close friends.", "error");
+        }
+    };
+
+    allFeedBtn.onclick = async () => {
+        CURRENT_FEED_MODE = "all";
+        feedStatusLabel.innerText = "Showing community posts";
+        allFeedBtn.classList.add("active");
+        allFeedBtn.classList.remove("secondary");
+        followingFeedBtn.classList.remove("active");
+        followingFeedBtn.classList.add("secondary");
+        await loadStoredPosts();
+    };
+
+    followingFeedBtn.onclick = async () => {
+        CURRENT_FEED_MODE = "following";
+        feedStatusLabel.innerText = "Showing people you follow";
+        followingFeedBtn.classList.add("active");
+        followingFeedBtn.classList.remove("secondary");
+        allFeedBtn.classList.remove("active");
+        allFeedBtn.classList.add("secondary");
+        await loadStoredPosts();
+    };
+
+    messagePeerInput.onchange = loadMessages;
+    messagePeerInput.onkeydown = (event) => {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            loadMessages();
+        }
+    };
+    messageInput.onkeydown = (event) => {
+        if (event.key === "Enter" && event.ctrlKey) {
+            event.preventDefault();
+            sendMessageBtn.click();
+        }
+    };
+    searchInput.onkeydown = (event) => {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            searchBtn.click();
+        }
+    };
+    darkModeToggle.onclick = () => document.body.classList.toggle("dark-mode");
+
+    // ---------------------------------
+    // Event delegation for dynamic UI
+    // ---------------------------------
+    document.addEventListener("click", async (e) => {
+        const thread = e.target.closest(".messageThread");
+        if (thread && messagePeerInput) {
+            const peer = decodeURIComponent(thread.dataset.peer || "");
+            if (peer) {
+                messagePeerInput.value = peer;
+                await loadMessages();
+            }
+            return;
+        }
+        if (e.target.classList.contains("likeBtn")) {
+            const postContainer = e.target.closest(".post-main");
+            const postId = postContainer?.dataset?.postId;
+            if (!postId) {
+                updateLikeButton(e.target, e.target.dataset.liked !== "1");
+                return;
+            }
+            const likeForm = new FormData();
+            likeForm.append("username", CURRENT_USER);
+            try {
+                const likeResponse = await fetch(`${API_BASE}/posts/${postId}/like`, { method: "POST", body: likeForm });
+                if (!likeResponse.ok) return;
+                const likeData = await likeResponse.json();
+                updateLikeButton(e.target, likeData.liked);
+                const likesLabel = postContainer.querySelector(".post-liked");
+                if (likesLabel) likesLabel.innerText = getLikeText(likeData.likes_count || 0);
+            } catch (err) {
+                console.error("Failed to like post", err);
+            }
+            return;
+        }
+
+        if (e.target.classList.contains("saveBtn")) {
+            const postContainer = e.target.closest(".post-main");
+            const postId = postContainer?.dataset?.postId;
+            if (!postId) {
+                updateSaveButton(e.target, e.target.dataset.saved !== "1");
+                return;
+            }
+            const saveForm = new FormData();
+            saveForm.append("username", CURRENT_USER);
+            try {
+                const saveResponse = await fetch(`${API_BASE}/posts/${postId}/save`, { method: "POST", body: saveForm });
+                if (!saveResponse.ok) return;
+                const saveData = await saveResponse.json();
+                updateSaveButton(e.target, saveData.saved);
+                const desc = postContainer.querySelector(".savedMeta");
+                if (desc) {
+                    const visibility = (desc.innerText.split("|")[1] || "public").trim();
+                    desc.innerText = `Saved ${saveData.saved_count || 0} times | ${visibility}`;
+                }
+                await loadSavedPosts();
+            } catch (err) {
+                console.error("Failed to save post", err);
+            }
+            return;
+        }
+
+        if (e.target.classList.contains("followUserBtn")) {
+            const targetUser = e.target.dataset.username;
+            if (!targetUser) return;
+            const followForm = new FormData();
+            followForm.append("follower_username", CURRENT_USER);
+            followForm.append("following_username", targetUser);
+            try {
+                const followResponse = await fetch(`${API_BASE}/follow`, { method: "POST", body: followForm });
+                if (!followResponse.ok) return;
+                const followData = await followResponse.json();
+                e.target.innerText = followData.is_following ? "Following" : (followData.request_status === "pending" ? "Requested" : "Follow");
+                await loadProfile();
+                await loadPrivacyOverview();
+                await loadStoredPosts();
+            } catch (err) {
+                console.error("Failed to follow user", err);
+            }
+            return;
+        }
+
+        if (e.target.classList.contains("followRequestActionBtn")) {
+            const requester = e.target.dataset.username;
+            const action = e.target.dataset.action;
+            if (!requester || !action) return;
+            const formData = new FormData();
+            formData.append("username", CURRENT_USER);
+            formData.append("requester_username", requester);
+            formData.append("action", action);
+            try {
+                const response = await fetch(`${API_BASE}/follow-requests/respond`, { method: "POST", body: formData });
+                if (!response.ok) return;
+                await loadPrivacyOverview();
+                await loadProfile();
+                await loadNotifications();
+                setStatus(privacyRelationsStatus, `${requester} ${action === "approve" ? "approved" : "rejected"}.`, "success");
+            } catch (err) {
+                console.error("Failed to respond to follow request", err);
+                setStatus(privacyRelationsStatus, "Failed to respond to the follow request.", "error");
+            }
+            return;
+        }
+
+        if (e.target.classList.contains("tagRequestActionBtn")) {
+            const postId = e.target.dataset.postId;
+            const commentId = e.target.dataset.commentId;
+            const action = e.target.dataset.action;
+            if (!postId || !action) return;
+            const formData = new FormData();
+            formData.append("username", CURRENT_USER);
+            formData.append("post_id", postId);
+            if (commentId) formData.append("comment_id", commentId);
+            formData.append("action", action);
+            try {
+                const response = await fetch(`${API_BASE}/tags/respond`, { method: "POST", body: formData });
+                if (!response.ok) return;
+                await loadPrivacyOverview();
+                await loadNotifications();
+                await loadStoredPosts();
+                setStatus(privacyRelationsStatus, `Tag ${action === "approve" ? "approved" : "rejected and hidden"}.`, "success");
+            } catch (err) {
+                console.error("Failed to respond to tag request", err);
+                setStatus(privacyRelationsStatus, "Failed to respond to tag request.", "error");
+            }
+            return;
+        }
+
+        if (e.target.classList.contains("tagLink")) {
+            e.preventDefault();
+            searchInput.value = `#${e.target.dataset.tag || ""}`;
+            searchBtn.click();
+            return;
+        }
+
+        if (e.target.classList.contains("mentionLink")) {
+            e.preventDefault();
+            searchInput.value = `@${e.target.dataset.user || ""}`;
+            searchBtn.click();
+            return;
+        }
+
+        if (e.target.classList.contains("deletePostBtn")) {
+            if (e.target.dataset.owned !== "1") {
+                alert("You can delete only your own posts.");
+                return;
+            }
+            const postContainer = e.target.closest(".post-main");
+            const postId = postContainer?.dataset?.postId;
+            if (!postId) return;
+            if (!window.confirm("Delete this post permanently?")) return;
+            try {
+                const deleteResponse = await fetch(`${API_BASE}/posts/${postId}?username=${encodeURIComponent(CURRENT_USER)}`, { method: "DELETE" });
+                if (!deleteResponse.ok) {
+                    let errorMessage = "Failed to delete post.";
+                    try {
+                        const errorData = await deleteResponse.json();
+                        if (errorData.detail) errorMessage = errorData.detail;
+                    } catch (err) {}
+                    alert(errorMessage);
+                    return;
+                }
+                postContainer.remove();
+                await loadProfile();
+            } catch (err) {
+                console.error("Failed to delete post", err);
+            }
+            return;
+        }
+
+        if (!e.target.classList.contains("commentBtn")) return;
+
+        const description = e.target.closest(".post-description");
+        const input = description?.querySelector(".commentInput");
+        const status = description?.querySelector(".commentStatus");
+        const postContainer = e.target.closest(".post-main");
+        const postId = postContainer?.dataset?.postId;
+        const commentsList = postContainer?.querySelector(".commentsList");
+        const comment = input?.value.trim();
+        if (!comment || !input || !status) return;
+
+        const formData = new FormData();
+        formData.append("comment", comment);
+        formData.append("username", CURRENT_USER);
+        try {
+            const moderationRes = await fetch(`${API_BASE}/check_comment`, { method: "POST", body: formData });
+            const moderationData = await moderationRes.json();
+            if (moderationData.status === "blocked") {
+                setCommentStatus(status, "Comment blocked (toxic)", "#c24432");
+                return;
+            }
+            setCommentStatus(status, `Allowed (${moderationData.sentiment})`, "#1e8b63");
+            if (postId) {
+                const saveFormData = new FormData();
+                saveFormData.append("comment", comment);
+                saveFormData.append("username", CURRENT_USER);
+                const saveResponse = await fetch(`${API_BASE}/posts/${postId}/comments`, { method: "POST", body: saveFormData });
+                if (!saveResponse.ok) {
+                    let errorMessage = "Failed to save comment.";
+                    try {
+                        const errorData = await saveResponse.json();
+                        if (errorData.detail) errorMessage = errorData.detail;
+                    } catch (err) {}
+                    setCommentStatus(status, errorMessage, "#c24432");
+                    return;
+                }
+                const savedComment = await saveResponse.json();
+                if (commentsList) {
+                    const commentBox = document.createElement("p");
+                    commentBox.innerHTML = `<strong>${escapeHtml(savedComment.username)}:</strong> ${escapeHtml(savedComment.content)}`;
+                    commentsList.appendChild(commentBox);
+                }
+                await loadNotifications();
+                await loadModeration();
+            } else {
+                const commentBox = document.createElement("p");
+                commentBox.innerHTML = `<strong>${escapeHtml(CURRENT_USER)}:</strong> ${escapeHtml(comment)}`;
+                commentsList?.appendChild(commentBox);
+            }
+            input.value = "";
+        } catch (err) {
+            console.error("Failed to comment", err);
+            setCommentStatus(status, "Failed to post comment.", "#c24432");
+        }
+    });
+
+    // ---------------------------------
+    // Initial data load
+    // ---------------------------------
+    loadStoredPosts();
+    loadProfile();
+    loadPrivacyOverview();
+    loadNotifications();
+    loadSavedPosts();
+    loadModeration();
+    loadStegoHistory();
+    loadMessages();
+    loadMessageThreads();
+
+});
+</script>
+</body>
+</html>
